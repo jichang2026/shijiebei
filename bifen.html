@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>足球赛事比分数据调取 - 实时热门球赛查询</title>
+    <style>
+        /* 保留所有原有样式，包含iframe相关样式 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: #f8f9fa;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px 0;
+            border-bottom: 2px solid #28a745;
+        }
+
+        .header h1 {
+            color: #212529;
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #6c757d;
+            font-size: 18px;
+        }
+
+        .update-tip {
+            text-align: center;
+            color: #28a745;
+            font-size: 14px;
+            margin-bottom: 15px;
+        }
+
+        .match-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .tab-btn {
+            padding: 10px 20px;
+            background: #e9ecef;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            color: #495057;
+            transition: all 0.3s;
+        }
+
+        .tab-btn.active {
+            background: #28a745;
+            color: white;
+        }
+
+        .tab-btn:hover:not(.active) {
+            background: #dee2e6;
+        }
+
+        .matches-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .match-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            border-left: 4px solid #28a745;
+            transition: transform 0.3s;
+        }
+
+        .match-card.live-match {
+            border-left-color: #dc3545;
+            box-shadow: 0 4px 15px rgba(220, 53, 69, 0.15);
+        }
+
+        .match-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .match-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #f1f3f5;
+        }
+
+        .league-name {
+            font-weight: 600;
+            color: #495057;
+            font-size: 14px;
+        }
+
+        .match-status {
+            font-size: 12px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            background: #e9ecef;
+            color: #495057;
+        }
+
+        .match-status.live {
+            background: #dc3545;
+            color: white;
+            animation: blink 1s infinite alternate;
+        }
+
+        @keyframes blink {
+            from { opacity: 1; }
+            to { opacity: 0.8; }
+        }
+
+        .match-status.finished {
+            background: #28a745;
+            color: white;
+        }
+
+        .match-status.scheduled {
+            background: #ffc107;
+            color: #212529;
+        }
+
+        .teams {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 15px 0;
+        }
+
+        .team {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 40%;
+        }
+
+        .team-name {
+            font-weight: 600;
+            color: #212529;
+            margin-bottom: 8px;
+            font-size: 16px;
+            text-align: center;
+        }
+
+        .score {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 20%;
+        }
+
+        .score-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #212529;
+            margin-bottom: 5px;
+        }
+
+        .score-time {
+            font-size: 12px;
+            color: #6c757d;
+        }
+
+        .match-details {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: #6c757d;
+            margin-top: 10px;
+        }
+
+        .loading, .error {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 50px;
+            font-size: 18px;
+            color: #6c757d;
+        }
+
+        .error {
+            color: #dc3545;
+        }
+
+        /* 按钮容器样式 - 让两个按钮并排显示 */
+        .btn-container {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 40px;
+            flex-wrap: wrap;
+        }
+
+        .refresh-btn, .jump-btn {
+            width: 200px;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.3s;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .refresh-btn {
+            background: #28a745;
+            color: white;
+        }
+
+        .refresh-btn:hover {
+            background: #218838;
+        }
+
+        .jump-btn {
+            background: #007bff;
+            color: white;
+        }
+
+        .jump-btn:hover {
+            background: #0069d9;
+        }
+
+        /* 中文比分接口iframe样式（保留，供JS动态创建的iframe使用） */
+        .score-iframe-container {
+            width: 100%;
+            margin: 40px 0 20px 0;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e9ecef;
+        }
+
+        .iframe-title {
+            background: #28a745;
+            color: white;
+            padding: 12px 20px;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .score-iframe {
+            width: 100%;
+            height: 800px;
+            border: none;
+        }
+
+        /* 响应式适配 */
+        @media (max-width: 768px) {
+            .matches-container {
+                grid-template-columns: 1fr;
+            }
+            .header h1 {
+                font-size: 26px;
+            }
+            .tab-btn {
+                padding: 8px 16px;
+                font-size: 14px;
+            }
+            .score-iframe {
+                height: 600px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .team-name {
+                font-size: 14px;
+            }
+            .score-value {
+                font-size: 20px;
+            }
+            .match-card {
+                padding: 15px;
+            }
+            .score-iframe {
+                height: 500px;
+            }
+            .iframe-title {
+                font-size: 16px;
+                padding: 10px 15px;
+            }
+            .refresh-btn, .jump-btn {
+                width: 100%;
+                max-width: 200px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>足球赛事比分查询</h1>
+            <p>实时更新热门足球赛事比分，覆盖各大联赛 关注<a href="https://www.jiedublog.com/zq/2026shijiebei/sjb2026.html">2026世界杯赛程比分</a></p>
+        </div>
+
+        <div class="update-tip" id="updateTip">数据最后更新：<span id="lastUpdateTime">加载中...</span> | 自动刷新中</div>
+
+        <div class="match-tabs">
+            <button class="tab-btn active" data-status="all">全部赛事</button>
+            <button class="tab-btn" data-status="live">正在进行</button>
+            <button class="tab-btn" data-status="finished">已结束</button>
+            <button class="tab-btn" data-status="scheduled">即将开始</button>
+        </div>
+
+        <div class="matches-container" id="matchesContainer">
+            <div class="loading">正在获取模拟赛事数据...</div>
+        </div>
+
+        <!-- 按钮容器，包含刷新和NowScore跳转按钮 -->
+        <div class="btn-container">
+            <button class="refresh-btn" onclick="fetchMatches()">刷新模板赛事数据</button>
+            <a href="https://live.nowscore.com/2in1.aspx" target="_blank" class="jump-btn">点击打开 NowScore 实时比分</a>
+        </div>
+
+    <!-- 仅引入外部JS文件，无任何内联JS/iframe代码 -->
+    <script src="match-score.js"></script>
+</body>
+</html>
